@@ -23,6 +23,7 @@ const defaultFields = [
   { name: "timing.wait", datatype: "number", label: "Wait (ms)" },
   { name: "timing.delay", datatype: "number", label: "Delay (ms)" },
   { name: "timing.download", datatype: "number", label: "Download (ms)" },
+  { name: "rank", datatype: "number", label: "Rank" },
   { name: "page.size", datatype: "number", label: "Size (bytes)" },
   { name: "page.static", datatype: "number", label: "Static (bytes)" },
   { name: "page.comment", datatype: "number", label: "Comment (Bytes)" },
