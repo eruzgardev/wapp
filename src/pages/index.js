@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/pagination";
 import {
   FileUploadDropzone,
-  FileUploadList,
   FileUploadRoot,
 } from "@/components/ui/file-upload"
 import { Center, HStack, Table } from "@chakra-ui/react";
@@ -90,15 +89,15 @@ export default function Home() {
                   .filter(Boolean)
                   .map((x) => {
                     const line = JSON.parse(x);
-                    line.groups = groups(line);
                     line.details ||= {};
                     line.details.size = parseInt(
                       (line.details?.size ?? "0")
                         .replace(",", "")
                         .replace(/\D.*$/g, ""),
                     );
-                    line.details.groups = [...line.groups.keys()].map(id => ({ id }));
-                    line.details.cats = [...line.groups.values()].map(group => [...group.keys()]).flat().map(id => ({ id }));
+                    let groupMap = groups(line);
+                    line.details.groups = [...groupMap.keys()].map(id => ({ id }));
+                    line.details.cats = [...groupMap.values()].map(group => [...group.keys()]).flat().map(id => ({ id }));
                     return line;
                   }),
               );
@@ -299,7 +298,7 @@ function Company(line, data) {
     string: (key) => get(line, key) || "",
     datetime: (key) => get(line, key) || "",
   };
-  const groupMap = line.groups;
+  const groupMap = groups(line);
   return (
     <Table.Row key={line.host}>
       {defaultFields.map((field) => (
@@ -318,7 +317,7 @@ function Company(line, data) {
                 .map((cat) => [...cat.values()].map((app) => app.name))
                 .flat(),
             ),
-          ].join(",")}
+          ].sort().join(",")}
         </Table.Cell>
       ))}
     </Table.Row>
