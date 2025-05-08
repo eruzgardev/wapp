@@ -1,5 +1,5 @@
 import "react-querybuilder/dist/query-builder.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import QueryBuilder, { formatQuery } from "react-querybuilder";
 import {
   PaginationItems,
@@ -15,6 +15,7 @@ import { Center, HStack, Table } from "@chakra-ui/react";
 import mingo from "mingo";
 import get from "lodash.get";
 import { useRouter } from "next/router";
+import Pako from "pako";
 
 const defaultFields = [
   { name: "host", datatype: "string", label: "Host" },
@@ -65,6 +66,18 @@ const defaultFields = [
   },
   { name: "details.warehouse", datatype: "boolean", label: "Warehouse" },
 ];
+async function fileToBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = function () {
+      resolve(Pako.ungzip(new Uint8Array(fileReader.result), { to: 'string' }));
+    };
+    fileReader.onerror = function (err) {
+      reject(err)
+    };
+    fileReader.readAsArrayBuffer(file)
+  })
+}
 export default function Home() {
   const [sortFields, setSortFields] = useState({
     "details.size": -1,
@@ -76,41 +89,31 @@ export default function Home() {
     combinator: "and",
     rules: [],
   });
-  const onChange = useCallback(async (e) => {
+  async function onChange(e) {
     const texts = await Promise.all(
-      Array.from(e.target.files).map(
-        (file) =>
-          new Promise((resolve) => {
-            const fileReader = new FileReader();
-            fileReader.onload = function () {
-              resolve(
-                fileReader.result
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((x) => {
-                    const line = JSON.parse(x);
-                    line.details ||= {};
-                    line.details.size = parseInt(
-                      (line.details?.size ?? "0")
-                        .replace(",", "")
-                        .replace(/\D.*$/g, ""),
-                    );
-                    let groupMap = groups(line);
-                    line.details.groups = [...groupMap.keys()].map(id => ({ id }));
-                    line.details.cats = [...groupMap.values()].map(group => [...group.keys()]).flat().map(id => ({ id }));
-                    return line;
-                  }),
+      Array.from(e.acceptedFiles).map(
+        (file) => fileToBuffer(file).then((result) => {
+          return result
+            .split("\n")
+            .filter(Boolean)
+            .map((x) => {
+              const line = JSON.parse(x);
+              line.details ||= {};
+              line.details.size = parseInt(
+                (line.details?.size ?? "0")
+                  .replace(",", "")
+                  .replace(/\D.*$/g, ""),
               );
-            };
-            fileReader.onerror = function () {
-              resolve([]);
-            };
-            fileReader.readAsText(file);
-          }),
+              let groupMap = groups(line);
+              line.details.groups = [...groupMap.keys()].map(id => ({ id }));
+              line.details.cats = [...groupMap.values()].map(group => [...group.keys()]).flat().map(id => ({ id }));
+              return line;
+            })
+        }),
       ),
     );
     setLines(texts.flat());
-  });
+  }
   const router = useRouter();
   useEffect(() => {
     fetch(`${router.basePath}/data.json`)
@@ -207,7 +210,8 @@ export default function Home() {
     <>
       {lines.length != 0 ? null : (
         <Center>
-          <FileUploadRoot maxW="xl" alignItems="stretch" maxFiles={10} onChange={onChange}>
+          <FileUploadRoot maxW="xl" alignItems="stretch" maxFiles={10}
+            onFileChange={(e) => onChange(e)}>
             <FileUploadDropzone
               label="Drag and drop here to upload"
               description="wapp.jsonl"
