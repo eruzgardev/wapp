@@ -255,7 +255,7 @@ export default function Home() {
                           key={field.name}
                           onClick={() =>
                             setSortFields((sortFields) => ({
-                              ...
+                              ...sortFields,
                               [field.name]: (sortFields[field.name] ?? 1) * -1,
                             }))
                           }
