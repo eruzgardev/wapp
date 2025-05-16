@@ -10,7 +10,7 @@ import {
 import {
   FileUploadDropzone,
   FileUploadRoot,
-} from "@/components/ui/file-upload"
+} from "@/components/ui/file-upload";
 import { Center, HStack, Table } from "@chakra-ui/react";
 import mingo from "mingo";
 import get from "lodash.get";
@@ -70,13 +70,13 @@ async function fileToBuffer(file) {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.onload = function () {
-      resolve(Pako.ungzip(new Uint8Array(fileReader.result), { to: 'string' }));
+      resolve(Pako.ungzip(new Uint8Array(fileReader.result), { to: "string" }));
     };
     fileReader.onerror = function (err) {
-      reject(err)
+      reject(err);
     };
-    fileReader.readAsArrayBuffer(file)
-  })
+    fileReader.readAsArrayBuffer(file);
+  });
 }
 export default function Home() {
   const [sortFields, setSortFields] = useState({
@@ -91,26 +91,30 @@ export default function Home() {
   });
   async function onChange(e) {
     const texts = await Promise.all(
-      Array.from(e.acceptedFiles).map(
-        (file) => fileToBuffer(file).then((result) => {
-          return result
-            .split("\n")
-            .filter(Boolean)
-            .map((x) => {
-              const line = JSON.parse(x);
-              line.details ||= {};
-              line.details.size = parseInt(
-                (line.details?.size ?? "0")
-                  .replace(",", "")
-                  .replace(/\D.*$/g, ""),
-              );
-              let groupMap = groups(line);
-              line.details.groups = [...groupMap.keys()].map(id => ({ id }));
-              line.details.cats = [...groupMap.values()].map(group => [...group.keys()]).flat().map(id => ({ id }));
-              return line;
-            })
-        }),
-      ),
+      Array.from(e.acceptedFiles).map(async (file) =>
+        (
+          await fileToBuffer(file)
+        )
+          .split("\n")
+          .filter(Boolean)
+          .map((x) => {
+            const line = JSON.parse(x);
+            line.details ||= {};
+            line.details.size = parseInt(
+              (line.details?.size ?? "0").replace(",", "").replace(/\D.*$/g, "")
+            );
+            let groupMap = groups(line);
+            line.details.groups = [...groupMap.keys()].map((id) => ({ id }));
+            line.details.cats = Array.from(
+              new Set(
+                Array.from(groupMap.values())
+                  .map((group) => Array.from(group.keys()))
+                  .flat()
+              )
+            ).map((id) => ({ id }));
+            return line;
+          })
+      )
     );
     setLines(texts.flat());
   }
@@ -125,8 +129,11 @@ export default function Home() {
   const [pageLimit, setPageLimit] = useState(32);
   const [filtered, setFiltered] = useState({ count: 0, rows: [] });
   const mongoQuery = useMemo(
-    () => new mingo.Query(formatQuery(query, { format: "mongodb_query", parseNumbers: true })),
-    [query],
+    () =>
+      new mingo.Query(
+        formatQuery(query, { format: "mongodb_query", parseNumbers: true })
+      ),
+    [query]
   );
   useEffect(() => {
     if (!query) {
@@ -147,24 +154,24 @@ export default function Home() {
     return [
       ...defaultFields,
       {
-        name: 'details.cats.id',
-        label: 'App Category',
+        name: "details.cats.id",
+        label: "App Category",
         values: Object.entries(data?.categories ?? {}).map(([key, val]) => ({
           name: parseInt(key),
-          label: val.name
+          label: val.name,
         })),
-        defaultOperator: 'in',
-        valueEditorType: 'multiselect',
+        defaultOperator: "in",
+        valueEditorType: "multiselect",
       },
       {
-        name: 'details.groups.id',
-        label: 'App Group',
+        name: "details.groups.id",
+        label: "App Group",
         values: Object.entries(data?.groups ?? {}).map(([key, val]) => ({
           name: parseInt(key),
-          label: val.name
+          label: val.name,
         })),
-        defaultOperator: 'in',
-        valueEditorType: 'multiselect',
+        defaultOperator: "in",
+        valueEditorType: "multiselect",
       },
       {
         name: "apps.name",
@@ -174,7 +181,7 @@ export default function Home() {
             lines
               .map((line) => line.apps?.map((app) => app.name))
               .flat()
-              .filter(Boolean) ?? [],
+              .filter(Boolean) ?? []
           ),
         ]
           .sort()
@@ -190,19 +197,19 @@ export default function Home() {
       ...(!field.collect
         ? {}
         : {
-          values: [
-            ...new Set(
-              lines.map((line) => get(line, field.name)).filter(Boolean),
-            ),
-          ]
-            .sort()
-            .map((name) => ({
-              name,
-              label: name,
-            })),
-          defaultOperator: "in",
-          valueEditorType: "multiselect",
-        }),
+            values: [
+              ...new Set(
+                lines.map((line) => get(line, field.name)).filter(Boolean)
+              ),
+            ]
+              .sort()
+              .map((name) => ({
+                name,
+                label: name,
+              })),
+            defaultOperator: "in",
+            valueEditorType: "multiselect",
+          }),
       ...field,
     }));
   }, [lines, data]);
@@ -210,8 +217,12 @@ export default function Home() {
     <>
       {lines.length != 0 ? null : (
         <Center>
-          <FileUploadRoot maxW="xl" alignItems="stretch" maxFiles={10}
-            onFileChange={(e) => onChange(e)}>
+          <FileUploadRoot
+            maxW="xl"
+            alignItems="stretch"
+            maxFiles={10}
+            onFileChange={(e) => onChange(e)}
+          >
             <FileUploadDropzone
               label="Drag and drop here to upload"
               description="wapp.jsonl"
@@ -232,7 +243,11 @@ export default function Home() {
                 <Table.Root size="sm" striped stickyHeader>
                   <Table.Header>
                     <Table.Row>
-                      <Table.Cell colSpan={defaultFields.length + Object.keys(data.groups).length}>{`Founded ${filtered.count}/${lines.length} items`}</Table.Cell>
+                      <Table.Cell
+                        colSpan={
+                          defaultFields.length + Object.keys(data.groups).length
+                        }
+                      >{`Founded ${filtered.count}/${lines.length} items`}</Table.Cell>
                     </Table.Row>
                     <Table.Row bg="bg.subtle">
                       {defaultFields.map((field) => (
@@ -240,6 +255,7 @@ export default function Home() {
                           key={field.name}
                           onClick={() =>
                             setSortFields((sortFields) => ({
+                              ...
                               [field.name]: (sortFields[field.name] ?? 1) * -1,
                             }))
                           }
@@ -319,9 +335,11 @@ function Company(line, data) {
             ...new Set(
               [...(groupMap.get(parseInt(idx))?.values() ?? [])]
                 .map((cat) => [...cat.values()].map((app) => app.name))
-                .flat(),
+                .flat()
             ),
-          ].sort().join(",")}
+          ]
+            .sort()
+            .join(",")}
         </Table.Cell>
       ))}
     </Table.Row>
